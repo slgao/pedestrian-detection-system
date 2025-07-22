@@ -1,0 +1,14 @@
+{
+  "name": "aws-n-tier-demo",
+  "version": "1.0.0",
+  "description": "Simple HTML/CSS/JS frontend for AWS n-tier architecture demo",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step needed - static HTML' && mkdir -p build && cp -r * build/",
+    "start": "python3 -m http.server 8000 || python -m SimpleHTTPServer 8000",
+    "test": "echo 'No tests - static HTML'"
+  },
+  "keywords": ["aws", "demo", "static", "html"],
+  "author": "AWS Demo",
+  "license": "MIT"
+}

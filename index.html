@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedestrian Detection System - AWS 3-Tier Architecture</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .primary-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 3px solid #667eea;
+        }
+        
+        .primary-section h2 {
+            color: #667eea;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .primary-section .subtitle {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .sidebar-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            border-left: 4px solid #28a745;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+        
+        .sidebar-card h3 {
+            color: #495057;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar-card:nth-child(2) {
+            border-left-color: #17a2b8;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .sidebar {
+                flex-direction: row;
+                gap: 15px;
+            }
+            
+            .sidebar-card {
+                flex: 1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                flex-direction: column;
+            }
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover { transform: translateY(-5px); }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+            margin: 20px 0 30px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+        
+        .upload-area:hover::before {
+            opacity: 1;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .upload-area:hover {
+            border-color: #5a67d8;
+            background: linear-gradient(135deg, #f0f4ff 0%, #dde7ff 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+        }
+        
+        .upload-area p {
+            font-size: 1.2rem;
+            color: #667eea;
+            font-weight: 600;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .upload-area.dragover { 
+            border-color: #764ba2; 
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            transform: scale(1.02);
+        }
+        
+        #fileInput { display: none; }
+        
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .status-footer {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .success { color: #28a745; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #17a2b8; font-weight: bold; }
+        
+        .image-gallery {
+            margin-top: 20px;
+        }
+        
+        .gallery-section {
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .gallery-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.3s ease;
+        }
+        
+        .gallery-header:hover {
+            background: #e9ecef;
+        }
+        
+        .gallery-header h4 {
+            margin: 0;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+        
+        .gallery-toggle {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .gallery-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .gallery-content {
+            padding: 20px;
+            display: none;
+        }
+        
+        .gallery-content.expanded {
+            display: block;
+        }
+        
+        .recent-uploads {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .older-uploads {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .image-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .image-item:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+        
+        .recent-uploads .image-item {
+            border-left: 4px solid #28a745;
+            position: relative;
+        }
+        
+        .recent-uploads .image-item::before {
+            content: "NEW";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 2;
+        }
+        
+        .older-uploads .image-item {
+            border-left: 4px solid #6c757d;
+            opacity: 0.9;
+        }
+        
+        .older-uploads .image-item:hover {
+            opacity: 1;
+        }
+        
+        .image-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .status-badge.processing {
+            background: rgba(255, 193, 7, 0.8);
+            color: #000;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-badge.completed {
+            background: rgba(40, 167, 69, 0.8);
+            color: #fff;
+        }
+        
+        .status-badge.failed {
+            background: rgba(220, 53, 69, 0.8);
+            color: #fff;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 8px;
+            display: block;
+        }
+        
+        .bounding-box {
+            position: absolute;
+            pointer-events: none;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+        
+        .bounding-box.person {
+            border: 1px solid #ff4444;
+            background: rgba(255, 68, 68, 0.05);
+        }
+        
+        .bounding-box.face {
+            border: 1px solid #44ff44;
+            background: rgba(68, 255, 68, 0.05);
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease;
+            z-index: 15;
+        }
+        
+        /* Special style for faces that are counted as separate people */
+        .bounding-box.face-person {
+            border: 2px solid #ff9900;
+            background: rgba(255, 153, 0, 0.1);
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease;
+            z-index: 16;
+            box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+        }
+        
+        .bounding-box.face-person::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            background: rgba(255, 153, 0, 0.8);
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: white;
+        }
+        }
+        
+        .bounding-box.face:hover {
+            border-color: #00ff00;
+            border-width: 2px;
+            background: rgba(68, 255, 68, 0.15);
+            transform: scale(1.02);
+            box-shadow: 0 0 10px rgba(68, 255, 68, 0.3);
+        }
+        
+        .bounding-box.face-person:hover {
+            border-color: #ff6600;
+            border-width: 3px;
+            background: rgba(255, 153, 0, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 12px rgba(255, 153, 0, 0.5);
+        }
+        
+        .bounding-box-label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            color: white;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 11;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .bounding-box.person .bounding-box-label {
+            background: rgba(255, 68, 68, 0.8);
+        }
+        
+        .bounding-box.face .bounding-box-label {
+            background: rgba(68, 255, 68, 0.8);
+            color: #000;
+        }
+        
+        .bounding-box.face-person .bounding-box-label {
+            background: rgba(255, 153, 0, 0.8);
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .face-zoom-preview {
+            position: fixed;
+            z-index: 2000;
+            pointer-events: none;
+            border: 2px solid #44ff44;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            background: white;
+            padding: 8px;
+            max-width: 280px;
+            min-width: 200px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .face-zoom-preview img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            display: block;
+        }
+        
+        .face-zoom-info {
+            padding: 8px 0;
+            font-size: 11px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 8px;
+            padding: 8px;
+            line-height: 1.4;
+        }
+        
+        .face-zoom-info div {
+            margin: 2px 0;
+        }
+        
+        .face-zoom-info strong {
+            color: #333;
+        }
+        
+        .image-info {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .labels {
+            margin-top: 10px;
+        }
+        
+        .label-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            margin-top: 40px;
+        }
+        
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .loading { color: #ffc107; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            position: relative;
+            margin: 5% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+        }
+        
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚶‍♂️ Pedestrian/Person Detection System</h1>
+            <p>AWS N-Tier Architecture with AI-Powered Image Recognition</p>
+        </div>
+        
+        <div class="main-layout">
+            <!-- Primary Image Recognition Section (2/3 width) -->
+            <div class="primary-section">
+                <h2>🖼️ AI Image Recognition</h2>
+                <p class="subtitle">Upload images to analyze with AWS Rekognition for advanced pedestrian detection and facial recognition. Get real-time results with bounding boxes and confidence scores.</p>
+                
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <p>📁 Click or drag images here to upload</p>
+                    <input type="file" id="fileInput" accept="image/*" multiple>
+                </div>
+                <div id="uploadResults" class="results"></div>
+                <div id="imageGallery" class="image-gallery"></div>
+            </div>
+            
+            <!-- Sidebar with System Info and Infrastructure Status (1/3 width) -->
+            <div class="sidebar">
+                <div class="sidebar-card">
+                    <h3>🔧 System Information</h3>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <strong>Instance ID</strong>
+                            <div id="instanceId">Loading...</div>
+                        </div>
+                        <div class="status-item">
+                            <strong>Availability Zone</strong>
+                            <div id="availabilityZone">Loading...</div>
+                        </div>
+                        <div class="status-item">
+                            <strong>Health Status</strong>
+                            <div id="healthStatus">Checking...</div>
+                        </div>
+                        <div class="status-item">
+                            <strong>API Status</strong>
+                            <div id="apiStatus">Checking...</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="refreshSystemInfo()">🔄 Refresh Info</button>
+                </div>
+                
+                <div class="sidebar-card">
+                    <h3>📊 Infrastructure Status</h3>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <strong>S3 Storage</strong>
+                            <div id="s3Status">🔄 Checking...</div>
+                        </div>
+                        <div class="status-item">
+                            <strong>Rekognition AI</strong>
+                            <div id="rekognitionStatus">🔄 Checking...</div>
+                        </div>
+                        <div class="status-item">
+                            <strong>System Resources</strong>
+                            <div id="systemStatus">🔄 Checking...</div>
+                        </div>
+                    </div>
+                    <div class="status-footer">
+                        <small id="lastHealthCheck">Initializing status checks...</small>
+                        <button onclick="refreshSystemInfo()" class="refresh-btn">🔄 Refresh</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🚀 Deployed with Terraform | Auto Scaling Group | Load Balanced</p>
+        </div>
+    </div>
+
+    <!-- Modal for image details -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let systemData = {};
+        let uploadedImages = [];
+        const API_BASE = '/api';
+        
+        // Load system information
+        async function loadSystemInfo() {
+            try {
+                console.log('Loading system info...');
+                const response = await fetch('/deployment-info.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                systemData = await response.json();
+                console.log('System data loaded:', systemData);
+                
+                document.getElementById('instanceId').textContent = systemData.instanceId || 'Unknown';
+                document.getElementById('availabilityZone').textContent = systemData.availabilityZone || 'Unknown';
+                
+            } catch (error) {
+                console.error('Failed to load system info:', error);
+                document.getElementById('instanceId').innerHTML = '<span class="error">Failed to load</span>';
+                document.getElementById('availabilityZone').innerHTML = '<span class="error">Failed to load</span>';
+            }
+        }
+        
+        // Overall health status check for System Information section
+        async function checkOverallHealth() {
+            try {
+                console.log('Checking overall health status...');
+                const response = await fetch('/api/status/infrastructure');
+                
+                if (response.ok) {
+                    const status = await response.json();
+                    console.log('Overall health check:', status.overall);
+                    
+                    const healthElement = document.getElementById('healthStatus');
+                    if (healthElement) {
+                        if (status.overall === 'healthy') {
+                            healthElement.innerHTML = '<span class="success">✅ Healthy</span>';
+                        } else if (status.overall === 'warning') {
+                            healthElement.innerHTML = '<span class="warning">⚠️ Warning</span>';
+                        } else {
+                            healthElement.innerHTML = '<span class="error">❌ Unhealthy</span>';
+                        }
+                    }
+                } else {
+                    console.error('Overall health check failed:', response.status);
+                    const healthElement = document.getElementById('healthStatus');
+                    if (healthElement) {
+                        healthElement.innerHTML = '<span class="error">⚠️ Check Failed</span>';
+                    }
+                }
+            } catch (error) {
+                console.error('Overall health check failed:', error);
+                const healthElement = document.getElementById('healthStatus');
+                if (healthElement) {
+                    healthElement.innerHTML = '<span class="error">❌ Error</span>';
+                }
+            }
+        }
+        
+        // API health check for system information section
+        async function checkApiHealth() {
+            try {
+                console.log('Checking API health for system info...');
+                const response = await fetch('/api/health');
+                
+                if (response.ok) {
+                    const healthData = await response.json();
+                    console.log('API health:', healthData);
+                    
+                    const apiElement = document.getElementById('apiStatus');
+                    if (apiElement) { // Only update if element exists (for system info section)
+                        if (healthData.status === 'healthy') {
+                            apiElement.innerHTML = '<span class="success">✅ API Running</span>';
+                        } else {
+                            apiElement.innerHTML = '<span class="warning">⚠️ API Issues</span>';
+                        }
+                    }
+                } else {
+                    const apiElement = document.getElementById('apiStatus');
+                    if (apiElement) {
+                        apiElement.innerHTML = '<span class="error">❌ API Down</span>';
+                    }
+                }
+            } catch (error) {
+                console.error('API health check failed:', error);
+                const apiElement = document.getElementById('apiStatus');
+                if (apiElement) {
+                    apiElement.innerHTML = '<span class="error">❌ API Error</span>';
+                }
+            }
+        }
+        
+        function refreshSystemInfo() {
+            console.log('Refreshing system info...');
+            loadSystemInfo();
+            checkOverallHealth(); // Overall health for system info section
+            checkApiHealth(); // API health check for system info
+            checkHealth(); // Infrastructure status check
+        }
+        
+        // Infrastructure status check (focused on AWS services only)
+        async function checkHealth() {
+            try {
+                console.log('Checking infrastructure status...');
+                const response = await fetch('/api/status/infrastructure');
+                
+                if (response.ok) {
+                    const status = await response.json();
+                    console.log('Infrastructure status:', status);
+                    
+                    // Update only infrastructure component statuses
+                    if (status.services) {
+                        updateComponentStatus('s3Status', status.services.s3);
+                        updateComponentStatus('rekognitionStatus', status.services.lambda);
+                        updateComponentStatus('systemStatus', status.services.database);
+                    }
+                    
+                    // Update last check time
+                    const lastCheck = new Date(status.timestamp).toLocaleTimeString();
+                    const lastCheckElement = document.getElementById('lastHealthCheck');
+                    if (lastCheckElement) {
+                        lastCheckElement.textContent = `Last check: ${lastCheck}`;
+                    }
+                    
+                } else {
+                    console.error('Infrastructure status check failed:', response.status, response.statusText);
+                    // Set infrastructure components to error state
+                    document.getElementById('s3Status').innerHTML = '<span class="error">❌ Check Failed</span>';
+                    document.getElementById('rekognitionStatus').innerHTML = '<span class="error">❌ Check Failed</span>';
+                    document.getElementById('systemStatus').innerHTML = '<span class="error">❌ Check Failed</span>';
+                }
+            } catch (error) {
+                console.error('Infrastructure check failed:', error);
+                // Set infrastructure components to error state
+                document.getElementById('s3Status').innerHTML = '<span class="error">❌ Connection Error</span>';
+                document.getElementById('rekognitionStatus').innerHTML = '<span class="error">❌ Connection Error</span>';
+                document.getElementById('systemStatus').innerHTML = '<span class="error">❌ Connection Error</span>';
+            }
+        }
+        
+        // Helper function to update component status
+        function updateComponentStatus(elementId, componentStatus) {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`Element ${elementId} not found`);
+                return;
+            }
+            
+            if (!componentStatus) {
+                element.innerHTML = '<span class="error">❌ No Data</span>';
+                return;
+            }
+            
+            if (componentStatus.status === 'healthy') {
+                element.innerHTML = `<span class="success">✅ ${componentStatus.message}</span>`;
+            } else if (componentStatus.status === 'lambda_managed') {
+                element.innerHTML = `<span class="success">🚀 ${componentStatus.message}</span>`;
+            } else if (componentStatus.status === 'warning') {
+                element.innerHTML = `<span class="warning">⚠️ ${componentStatus.message}</span>`;
+            } else if (componentStatus.status === 'unknown') {
+                element.innerHTML = `<span class="info">ℹ️ ${componentStatus.message}</span>`;
+            } else {
+                element.innerHTML = `<span class="error">❌ ${componentStatus.message}</span>`;
+            }
+        }
+        
+        // API health check
+        async function checkApiHealth() {
+            try {
+                console.log('Checking API health...');
+                const response = await fetch('/api/health');
+                
+                if (response.ok) {
+                    const healthData = await response.json();
+                    console.log('API health:', healthData);
+                    
+                    const apiElement = document.getElementById('apiStatus');
+                    if (healthData.status === 'healthy') {
+                        apiElement.innerHTML = '<span class="success">✅ API Running</span>';
+                    } else {
+                        apiElement.innerHTML = '<span class="warning">⚠️ API Issues</span>';
+                    }
+                } else {
+                    document.getElementById('apiStatus').innerHTML = '<span class="error">❌ API Down</span>';
+                }
+            } catch (error) {
+                console.error('API health check failed:', error);
+                document.getElementById('apiStatus').innerHTML = '<span class="error">❌ API Error</span>';
+            }
+        }
+        
+        // File upload handling
+        const uploadArea = document.querySelector('.upload-area');
+        const fileInput = document.getElementById('fileInput');
+        const uploadResults = document.getElementById('uploadResults');
+        const imageGallery = document.getElementById('imageGallery');
+        
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            uploadResults.style.display = 'block';
+            uploadResults.innerHTML = '<div class="loading">📤 Uploading images to S3 and processing with AWS Rekognition...</div>';
+            
+            try {
+                const formData = new FormData();
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+                
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayUploadResults(result);
+                    
+                    // Load all images from server (including newly uploaded ones)
+                    // Small delay to ensure server has the images ready
+                    setTimeout(() => {
+                        console.log('Loading images after upload...');
+                        loadExistingImages().then(() => {
+                            // Find newly uploaded images that need processing
+                            const newImageIds = result.files
+                                .filter(file => file.imageId)
+                                .map(file => file.imageId);
+                                
+                            // Add to unprocessed set
+                            newImageIds.forEach(id => {
+                                if (id) unprocessedImages.add(id);
+                            });
+                            
+                            // Start smart refresh if not already running
+                            if (unprocessedImages.size > 0 && !smartRefreshInterval) {
+                                startSmartRefresh();
+                            }
+                        });
+                    }, 2000); // 2 second delay
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+                
+            } catch (error) {
+                console.error('Upload failed:', error);
+                uploadResults.innerHTML = `<div class="error">❌ Upload failed: ${error.message}</div>`;
+            }
+        }
+        
+        function displayUploadResults(result) {
+            const successCount = result.files.filter(f => f.status === 'uploaded').length;
+            const failCount = result.files.filter(f => f.status === 'failed').length;
+            
+            uploadResults.innerHTML = `
+                <div class="success">✅ ${successCount} images uploaded successfully!</div>
+                ${failCount > 0 ? `<div class="error">❌ ${failCount} images failed to upload</div>` : ''}
+                <div>Click on images below to see detection results and bounding boxes.</div>
+            `;
+        }
+        
+        async function displayImageGallery() {
+            const imageGallery = document.getElementById('imageGallery');
+            
+            console.log('displayImageGallery called, uploadedImages length:', uploadedImages.length);
+            console.log('uploadedImages sample:', uploadedImages[0]);
+            
+            // Sort images by upload time (newest first)
+            // Filter for uploaded images OR images from S3 (which don't have status field)
+            const sortedImages = [...uploadedImages]
+                .filter(img => !img.status || img.status === 'uploaded') // Accept images without status (from S3) or with status 'uploaded'
+                .sort((a, b) => new Date(b.uploadTime || 0) - new Date(a.uploadTime || 0));
+            
+            console.log('Filtered sortedImages length:', sortedImages.length);
+            
+            if (sortedImages.length === 0) {
+                imageGallery.innerHTML = '<p style="text-align: center; color: #666;">No images uploaded yet</p>';
+                return;
+            }
+            
+            // Separate recent (last 5) and older images
+            const recentImages = sortedImages.slice(0, 5);
+            const olderImages = sortedImages.slice(5);
+            
+            let galleryHTML = '';
+            
+            // Recent uploads section (always expanded)
+            if (recentImages.length > 0) {
+                galleryHTML += `
+                    <div class="gallery-section">
+                        <div class="gallery-header" onclick="toggleGallerySection('recent')">
+                            <h4>📸 Recent Uploads (${recentImages.length})</h4>
+                            <span class="gallery-toggle expanded" id="recent-toggle">▼</span>
+                        </div>
+                        <div class="gallery-content expanded" id="recent-content">
+                            <div class="recent-uploads" id="recent-images"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Older uploads section (collapsed by default)
+            if (olderImages.length > 0) {
+                galleryHTML += `
+                    <div class="gallery-section">
+                        <div class="gallery-header" onclick="toggleGallerySection('older')">
+                            <h4>📁 Previous Uploads (${olderImages.length})</h4>
+                            <span class="gallery-toggle" id="older-toggle">▼</span>
+                        </div>
+                        <div class="gallery-content" id="older-content">
+                            <div class="older-uploads" id="older-images"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            imageGallery.innerHTML = galleryHTML;
+            
+            // Load recent images
+            await loadImagesIntoContainer(recentImages, 'recent-images');
+            
+            // Load older images only if section is expanded
+            if (olderImages.length > 0) {
+                await loadImagesIntoContainer(olderImages, 'older-images');
+            }
+        }
+        
+        async function loadImagesIntoContainer(images, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            for (const image of images) {
+                try {
+                    let imageUrl;
+                    
+                    // If image already has a URL (from /api/images), use it
+                    if (image.url) {
+                        imageUrl = image.url;
+                        console.log('Using existing URL for image:', image.fileName || image.s3Key);
+                    } 
+                    // Otherwise, generate presigned URL (for newly uploaded images)
+                    else if (image.s3Key || image.fileName) {
+                        const s3Key = image.s3Key || image.fileName;
+                        console.log('Generating presigned URL for:', s3Key);
+                        
+                        const urlResponse = await fetch(`${API_BASE}/image/${encodeURIComponent(s3Key)}`);
+                        const urlData = await urlResponse.json();
+                        
+                        if (!urlData.success) {
+                            console.error('Failed to get presigned URL for:', s3Key, urlData);
+                            continue;
+                        }
+                        
+                        imageUrl = urlData.url;
+                    }
+                    // Skip if no way to get image URL
+                    else {
+                        console.error('No URL or s3Key found for image:', image);
+                        continue;
+                    }
+                    
+                    const imageElement = createImageElement(image, imageUrl);
+                    container.appendChild(imageElement);
+                } catch (error) {
+                    console.error('Failed to load image:', error);
+                }
+            }
+        }
+        
+        function toggleGallerySection(sectionId) {
+            const content = document.getElementById(`${sectionId}-content`);
+            const toggle = document.getElementById(`${sectionId}-toggle`);
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                toggle.classList.add('expanded');
+                
+                // Redraw bounding boxes for images in the newly expanded section
+                setTimeout(() => {
+                    const images = content.querySelectorAll('img[data-bounding-boxes]');
+                    images.forEach(img => {
+                        const boundingBoxes = JSON.parse(img.getAttribute('data-bounding-boxes') || '[]');
+                        const faceBoxes = JSON.parse(img.getAttribute('data-face-boxes') || '[]');
+                        
+                        // Don't remove the data attributes - keep them for future use
+                        console.log('Toggle: Redrawing for expanded section', { boundingBoxes: boundingBoxes.length, faceBoxes: faceBoxes.length });
+                        
+                        // Redraw the bounding boxes now that the section is visible
+                        drawBoundingBoxes(img, boundingBoxes, faceBoxes);
+                    });
+                }, 100); // Small delay to ensure CSS transition is complete
+            }
+        }
+        
+        // Function to count faces that aren't within person bounding boxes
+        function countFacesOutsidePersonBoxes(personBoxes, faceBoxes) {
+            if (!personBoxes.length) {
+                // If no person boxes, all faces count as separate people
+                return faceBoxes.length;
+            }
+            
+            if (!faceBoxes.length) {
+                // If no faces, return 0
+                return 0;
+            }
+            
+            let facesOutsideCount = 0;
+            
+            // Check each face to see if it's inside any person box
+            faceBoxes.forEach(face => {
+                // Calculate face center point
+                const faceCenterX = face.Left + (face.Width / 2);
+                const faceCenterY = face.Top + (face.Height / 2);
+                
+                // Check if this face is inside any person box
+                let isInsideAnyPersonBox = false;
+                
+                for (const person of personBoxes) {
+                    // Check if face center is inside this person box
+                    if (
+                        faceCenterX >= person.Left && 
+                        faceCenterX <= (person.Left + person.Width) &&
+                        faceCenterY >= person.Top && 
+                        faceCenterY <= (person.Top + person.Height)
+                    ) {
+                        isInsideAnyPersonBox = true;
+                        break;
+                    }
+                }
+                
+                // If face is not inside any person box, count it as a separate person
+                if (!isInsideAnyPersonBox) {
+                    facesOutsideCount++;
+                }
+            });
+            
+            return facesOutsideCount;
+        }
+        
+        function createImageElement(imageData, imageUrl) {
+            const div = document.createElement('div');
+            div.className = 'image-item';
+            div.onclick = () => showImageModal(imageData, imageUrl);
+            
+            const rekognition = imageData.rekognition || {};
+            const boundingBoxes = rekognition.boundingBoxes || [];
+            const faceBoxes = rekognition.faceBoxes || [];
+            
+            // Count people based on person bounding boxes plus faces that aren't within person boxes
+            const personBoxCount = boundingBoxes.length;
+            const faceCount = faceBoxes.length;
+            
+            // Calculate which faces are not within person bounding boxes
+            const facesOutsidePersonBoxes = countFacesOutsidePersonBoxes(boundingBoxes, faceBoxes);
+            
+            // Total people count = person boxes + faces outside person boxes
+            const totalPeopleCount = personBoxCount + facesOutsidePersonBoxes;
+            
+            // Determine processing status based on presence of rekognition data
+            let processingStatus = 'processing';
+            let statusBadge = '';
+            
+            // Check if image has been processed (has rekognition data or completed status)
+            const isProcessed = rekognition || imageData.processing_status === 'completed';
+            
+            if (isProcessed) {
+                // Image is processed, but check if any people were detected
+                const hasPeople = boundingBoxes && boundingBoxes.length > 0;
+                const hasFaces = faceBoxes && faceBoxes.length > 0;
+                
+                if (hasPeople || hasFaces) {
+                    statusBadge = '<div class="status-badge completed">✓ People Detected</div>';
+                } else {
+                    statusBadge = '<div class="status-badge completed">✓ No People Found</div>';
+                }
+            } else if (imageData.processing_status === 'failed') {
+                statusBadge = '<div class="status-badge failed">✗ Failed</div>';
+            } else {
+                statusBadge = '<div class="status-badge processing">⟳ Processing...</div>';
+            }
+            
+            div.innerHTML = `
+                <div class="image-container">
+                    <img src="${imageUrl}" alt="${imageData.originalName}" 
+                         onload="drawBoundingBoxes(this, ${JSON.stringify(boundingBoxes).replace(/"/g, '&quot;')}, ${JSON.stringify(faceBoxes).replace(/"/g, '&quot;')})">
+                    ${statusBadge}
+                </div>
+                <div class="image-info">
+                    <strong>${imageData.originalName}</strong><br>
+                    👥 People detected: ${totalPeopleCount} (${personBoxCount} bodies + ${facesOutsidePersonBoxes} extra faces)<br>
+                    😊 Faces detected: ${faceCount}<br>
+                    📦 Total boxes: ${boundingBoxes.length + faceBoxes.length}
+                </div>
+                <div class="labels">
+                    ${(rekognition.labels || []).slice(0, 5).map(label => 
+                        `<span class="label-tag">${label.Name} (${Math.round(label.Confidence)}%)</span>`
+                    ).join('')}
+                </div>
+            `;
+            
+            return div;
+        }
+        
+        function drawBoundingBoxes(img, boundingBoxes, faceBoxes = []) {
+            const container = img.parentElement;
+            
+            // Always store the bounding box data for future use (resize, expand/collapse)
+            if (boundingBoxes.length > 0 || faceBoxes.length > 0) {
+                img.setAttribute('data-bounding-boxes', JSON.stringify(boundingBoxes));
+                img.setAttribute('data-face-boxes', JSON.stringify(faceBoxes));
+            }
+            
+            // Remove existing bounding boxes
+            container.querySelectorAll('.bounding-box').forEach(box => box.remove());
+            
+            // Wait for image to be fully loaded and get its actual displayed dimensions
+            if (!img.complete || img.naturalWidth === 0) {
+                img.onload = () => drawBoundingBoxes(img, boundingBoxes, faceBoxes);
+                return;
+            }
+            
+            // Check if the image is in a collapsed section
+            const gallerySection = container.closest('.gallery-section');
+            const galleryContent = gallerySection ? gallerySection.querySelector('.gallery-content') : null;
+            
+            // Debug logging
+            console.log('Drawing bounding boxes for image:', {
+                hasGallerySection: !!gallerySection,
+                hasGalleryContent: !!galleryContent,
+                isExpanded: galleryContent ? galleryContent.classList.contains('expanded') : 'N/A',
+                imageVisible: img.offsetWidth > 0 && img.offsetHeight > 0,
+                boundingBoxCount: boundingBoxes.length,
+                faceBoxCount: faceBoxes.length
+            });
+            
+            if (galleryContent && !galleryContent.classList.contains('expanded')) {
+                // Section is collapsed - data already stored above, just return
+                console.log('Section is collapsed, deferring bounding box drawing');
+                return;
+            }
+            
+            // Check if image dimensions are available (not hidden)
+            if (img.offsetWidth === 0 || img.offsetHeight === 0) {
+                // Image is hidden - data already stored above, just return
+                console.log('Image dimensions not available, deferring bounding box drawing');
+                return;
+            }
+            
+            console.log('Proceeding with bounding box drawing');
+            
+            // Calculate the actual displayed image size (accounting for object-fit: contain)
+            const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+            const containerAspectRatio = img.offsetWidth / img.offsetHeight;
+            
+            let displayedWidth, displayedHeight, offsetX = 0, offsetY = 0;
+            
+            if (imgAspectRatio > containerAspectRatio) {
+                // Image is wider - fit to width
+                displayedWidth = img.offsetWidth;
+                displayedHeight = img.offsetWidth / imgAspectRatio;
+                offsetY = (img.offsetHeight - displayedHeight) / 2;
+            } else if (imgAspectRatio < containerAspectRatio) {
+                // Image is taller - fit to height
+                displayedHeight = img.offsetHeight;
+                displayedWidth = img.offsetHeight * imgAspectRatio;
+                offsetX = (img.offsetWidth - displayedWidth) / 2;
+            } else {
+                // Aspect ratios are equal - image fills container exactly
+                displayedWidth = img.offsetWidth;
+                displayedHeight = img.offsetHeight;
+                offsetX = 0;
+                offsetY = 0;
+            }
+            
+            console.log('Bounding box dimensions:', {
+                container: { width: img.offsetWidth, height: img.offsetHeight },
+                displayed: { width: displayedWidth, height: displayedHeight },
+                offset: { x: offsetX, y: offsetY }
+            });
+            
+            // Draw person bounding boxes
+            boundingBoxes.forEach((box, index) => {
+                drawSingleBoundingBox(container, box, displayedWidth, displayedHeight, offsetX, offsetY, 'person');
+            });
+            
+            // Identify faces that are outside person bounding boxes
+            const facesOutside = [];
+            faceBoxes.forEach(face => {
+                // Calculate face center point
+                const faceCenterX = face.Left + (face.Width / 2);
+                const faceCenterY = face.Top + (face.Height / 2);
+                
+                // Check if this face is inside any person box
+                let isInsideAnyPersonBox = false;
+                
+                for (const person of boundingBoxes) {
+                    // Check if face center is inside this person box
+                    if (
+                        faceCenterX >= person.Left && 
+                        faceCenterX <= (person.Left + person.Width) &&
+                        faceCenterY >= person.Top && 
+                        faceCenterY <= (person.Top + person.Height)
+                    ) {
+                        isInsideAnyPersonBox = true;
+                        break;
+                    }
+                }
+                
+                // If face is not inside any person box, mark it
+                if (!isInsideAnyPersonBox) {
+                    facesOutside.push(face);
+                }
+            });
+            
+            // Draw face bounding boxes with hover functionality
+            faceBoxes.forEach((box, index) => {
+                // Check if this face is outside any person box
+                const isOutsidePerson = facesOutside.includes(box);
+                
+                // Draw the face box with appropriate type
+                const boxElement = drawSingleBoundingBox(
+                    container, 
+                    box, 
+                    displayedWidth, 
+                    displayedHeight, 
+                    offsetX, 
+                    offsetY, 
+                    isOutsidePerson ? 'face-person' : 'face'
+                );
+                
+                // Add hover functionality for face zoom
+                boxElement.addEventListener('mouseenter', (e) => {
+                    console.log('Face hover started:', box);
+                    showFaceZoom(e, img, box, displayedWidth, displayedHeight, offsetX, offsetY);
+                });
+                
+                boxElement.addEventListener('mouseleave', (e) => {
+                    console.log('Face hover ended');
+                    hideFaceZoom();
+                });
+                
+                boxElement.addEventListener('mousemove', (e) => {
+                    updateFaceZoomPosition(e);
+                });
+                
+                // Make sure the box is interactive
+                boxElement.style.pointerEvents = 'auto';
+                boxElement.style.cursor = 'pointer';
+            });
+        }
+        
+        function drawSingleBoundingBox(container, box, displayedWidth, displayedHeight, offsetX, offsetY, type) {
+            // Fix: Access box properties directly, not box.boundingBox
+            const bbox = box; // The box already contains Left, Top, Width, Height
+            const boxElement = document.createElement('div');
+            boxElement.className = `bounding-box ${type}`;
+            
+            console.log('Drawing bounding box:', { type, bbox });
+            
+            // Calculate bounding box position and size
+            const left = offsetX + (bbox.Left * displayedWidth);
+            const top = offsetY + (bbox.Top * displayedHeight);
+            const width = bbox.Width * displayedWidth;
+            const height = bbox.Height * displayedHeight;
+            
+            console.log('Box positioning:', { left, top, width, height });
+            
+            boxElement.style.position = 'absolute';
+            boxElement.style.left = left + 'px';
+            boxElement.style.top = top + 'px';
+            boxElement.style.width = width + 'px';
+            boxElement.style.height = height + 'px';
+            
+            // Add label
+            const label = document.createElement('div');
+            label.className = 'bounding-box-label';
+            
+            if (type === 'face-person') {
+                const ageRange = box.ageRange || {};
+                const gender = box.gender || {};
+                const emotions = box.emotions || [];
+                
+                let labelText = `Person (Face) ${Math.round(box.confidence)}%`;
+                if (ageRange.Low && ageRange.High) {
+                    labelText += ` • ${ageRange.Low}-${ageRange.High}y`;
+                }
+                if (gender.Value) {
+                    labelText += ` • ${gender.Value}`;
+                }
+                if (emotions.length > 0) {
+                    labelText += ` • ${emotions[0].Type}`;
+                }
+                
+                label.textContent = labelText;
+            }
+            else if (type === 'face') {
+                const ageRange = box.ageRange || {};
+                const gender = box.gender || {};
+                const emotions = box.emotions || [];
+                
+                let labelText = `Face (${Math.round(box.confidence)}%)`;
+                if (ageRange.Low && ageRange.High) {
+                    labelText += ` • ${ageRange.Low}-${ageRange.High}y`;
+                }
+                if (gender.Value) {
+                    labelText += ` • ${gender.Value}`;
+                }
+                
+                label.textContent = labelText;
+            } else {
+                // Fix: Use 'Person' instead of undefined box.label
+                label.textContent = `Person (${Math.round(box.confidence)}%)`;
+            }
+            
+            boxElement.appendChild(label);
+            container.appendChild(boxElement);
+            
+            return boxElement;
+        }
+        
+        function showImageModal(imageData, imageUrl) {
+            const modal = document.getElementById('imageModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            const rekognition = imageData.rekognition || {};
+            const faceBoxes = rekognition.faceBoxes || [];
+            const boundingBoxes = rekognition.boundingBoxes || [];
+            
+            // Count people based on person bounding boxes plus faces that aren't within person boxes
+            const personBoxCount = boundingBoxes.length;
+            const faceCount = faceBoxes.length;
+            
+            // Calculate which faces are not within person bounding boxes
+            const facesOutsidePersonBoxes = countFacesOutsidePersonBoxes(boundingBoxes, faceBoxes);
+            
+            // Total people count = person boxes + faces outside person boxes
+            const totalPeopleCount = personBoxCount + facesOutsidePersonBoxes;
+            
+            modalContent.innerHTML = `
+                <h2>${imageData.originalName}</h2>
+                <div class="image-container" style="max-width: 100%; margin: 20px 0; position: relative;">
+                    <img src="${imageUrl}" style="width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: block;" 
+                         onload="drawBoundingBoxes(this, ${JSON.stringify(boundingBoxes).replace(/"/g, '&quot;')}, ${JSON.stringify(faceBoxes).replace(/"/g, '&quot;')})">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h3>🎯 Detection Results</h3>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <p><strong>👥 Total People:</strong> ${totalPeopleCount}</p>
+                            <p><strong>👤 Person Bodies:</strong> ${personBoxCount}</p>
+                            <p><strong>😊 Faces (total):</strong> ${faceCount}</p>
+                            <p><strong>🔍 Extra Faces:</strong> ${facesOutsidePersonBoxes} <small>(faces without visible bodies)</small></p>
+                            <p><strong>🟢 Face Boxes:</strong> ${faceBoxes.length} <small>(hover to zoom)</small></p>
+                            <p><strong>⏰ Processed:</strong> ${
+                                imageData.processed_at ? new Date(imageData.processed_at).toLocaleString() : 
+                                imageData.uploadTime ? new Date(imageData.uploadTime).toLocaleString() + ' (estimated)' : 
+                                'N/A'
+                            }</p>
+                            <p><strong>📏 Original Size:</strong> <span id="imageDimensions">Loading...</span></p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>🏷️ All Labels</h3>
+                        <div class="labels" style="max-height: 200px; overflow-y: auto;">
+                            ${(rekognition.labels || []).map(label => 
+                                `<span class="label-tag">${label.Name} (${Math.round(label.Confidence)}%)</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #44ff44;">
+                    <h4>💡 Detection Guide:</h4>
+                    <p><strong>Red boxes:</strong> Detected people/pedestrians</p>
+                    <p><strong>Green boxes:</strong> Detected faces (hover for detailed analysis with age, gender, emotion)</p>
+                    <p><strong>People vs Faces:</strong> People count shows full body detections, Face count shows facial detections</p>
+                </div>
+            `;
+            
+            // Add image dimension info when loaded
+            const img = modalContent.querySelector('img');
+            img.onload = function() {
+                const dimensionsSpan = document.getElementById('imageDimensions');
+                if (dimensionsSpan) {
+                    dimensionsSpan.textContent = `${this.naturalWidth} × ${this.naturalHeight}px`;
+                }
+                drawBoundingBoxes(this, boundingBoxes, faceBoxes);
+            };
+            
+            modal.style.display = 'block';
+        }
+        
+        let faceZoomPreview = null;
+        
+        function showFaceZoom(event, img, faceBox, displayedWidth, displayedHeight, offsetX, offsetY) {
+            // Remove any existing preview
+            hideFaceZoom();
+            
+            console.log('=== Face Data Debug ===');
+            console.log('Complete face box data:', faceBox);
+            console.log('Age range:', faceBox.ageRange);
+            console.log('Gender:', faceBox.gender);
+            console.log('Emotions:', faceBox.emotions);
+            
+            // Create zoom preview element
+            faceZoomPreview = document.createElement('div');
+            faceZoomPreview.className = 'face-zoom-preview';
+            
+            // Create detailed face info content
+            const ageRange = faceBox.ageRange || {};
+            const gender = faceBox.gender || {};
+            const emotions = faceBox.emotions || [];
+            
+            console.log('Processed data:', { ageRange, gender, emotions });
+            
+            let infoHTML = `<div style="margin-bottom: 8px;"><strong>🎯 Face Analysis</strong></div>`;
+            
+            // Confidence
+            infoHTML += `<div style="margin: 3px 0;"><strong>Confidence:</strong> ${Math.round(faceBox.confidence)}%</div>`;
+            
+            // Age information
+            if (ageRange && ageRange.Low && ageRange.High) {
+                infoHTML += `<div style="margin: 3px 0;"><strong>👤 Age:</strong> ${ageRange.Low}-${ageRange.High} years</div>`;
+            } else {
+                infoHTML += `<div style="margin: 3px 0; color: #666;"><strong>👤 Age:</strong> Not detected</div>`;
+                console.log('Age not detected. Raw ageRange:', ageRange);
+            }
+            
+            // Gender information
+            if (gender && gender.Value) {
+                const genderIcon = gender.Value.toLowerCase() === 'male' ? '👨' : '👩';
+                infoHTML += `<div style="margin: 3px 0;"><strong>${genderIcon} Gender:</strong> ${gender.Value} (${Math.round(gender.Confidence)}%)</div>`;
+            } else {
+                infoHTML += `<div style="margin: 3px 0; color: #666;"><strong>⚧ Gender:</strong> Not detected</div>`;
+                console.log('Gender not detected. Raw gender:', gender);
+            }
+            
+            // Emotion information
+            if (emotions && emotions.length > 0) {
+                const topEmotion = emotions[0];
+                const emotionIcons = {
+                    'HAPPY': '😊', 'SAD': '😢', 'ANGRY': '😠', 'SURPRISED': '😲',
+                    'FEAR': '😨', 'DISGUSTED': '🤢', 'CALM': '😌', 'CONFUSED': '😕'
+                };
+                const emotionIcon = emotionIcons[topEmotion.Type] || '😐';
+                infoHTML += `<div style="margin: 3px 0;"><strong>${emotionIcon} Emotion:</strong> ${topEmotion.Type} (${Math.round(topEmotion.Confidence)}%)</div>`;
+                
+                // Show top 3 emotions if available
+                if (emotions.length > 1) {
+                    infoHTML += `<div style="margin: 3px 0; font-size: 10px; color: #666;">`;
+                    infoHTML += `<strong>Other emotions:</strong> `;
+                    const otherEmotions = emotions.slice(1, 3).map(e => 
+                        `${e.Type} (${Math.round(e.Confidence)}%)`
+                    ).join(', ');
+                    infoHTML += otherEmotions + `</div>`;
+                }
+            } else {
+                infoHTML += `<div style="margin: 3px 0; color: #666;"><strong>😐 Emotion:</strong> Not detected</div>`;
+                console.log('Emotions not detected. Raw emotions:', emotions);
+            }
+            
+            // Fix: Use faceBox directly, not faceBox.boundingBox
+            const bbox = faceBox; // The faceBox already contains Left, Top, Width, Height
+            
+            console.log('Face zoom bbox:', bbox);
+            
+            // Calculate face center as percentage
+            const faceCenterX = (bbox.Left + bbox.Width / 2) * 100;
+            const faceCenterY = (bbox.Top + bbox.Height / 2) * 100;
+            
+            // Calculate face size in pixels for container sizing
+            const faceWidth = bbox.Width * displayedWidth;
+            const faceHeight = bbox.Height * displayedHeight;
+            const faceSize = Math.max(faceWidth, faceHeight);
+            
+            console.log('Face zoom calculations:', { faceCenterX, faceCenterY, faceSize });
+            
+            // Calculate background-size based on face size
+            let containerSize, backgroundSize;
+            
+            if (faceSize < 8) {
+                containerSize = 150;
+                backgroundSize = '3000%';
+            } else if (faceSize < 15) {
+                containerSize = 140;
+                backgroundSize = '2000%';
+            } else if (faceSize < 25) {
+                containerSize = 130;
+                backgroundSize = '1200%';
+            } else if (faceSize < 40) {
+                containerSize = 120;
+                backgroundSize = '800%';
+            } else {
+                containerSize = 110;
+                backgroundSize = '500%';
+            }
+            
+            const faceImageHTML = `
+                <div style="
+                    width: ${containerSize}px; 
+                    height: ${containerSize}px; 
+                    border-radius: 8px; 
+                    border: 2px solid #44ff44;
+                    background-image: url('${img.src}');
+                    background-position: ${faceCenterX}% ${faceCenterY}%;
+                    background-size: ${backgroundSize};
+                    background-repeat: no-repeat;
+                    background-color: white;
+                    margin: 0 auto;
+                ">
+                </div>
+            `;
+            
+            // Set up the enhanced preview content
+            faceZoomPreview.innerHTML = `
+                <div style="text-align: center; padding: 10px; background: #f0f8ff; border-radius: 5px; margin-bottom: 8px;">
+                    ${faceImageHTML}
+                </div>
+                <div class="face-zoom-info" style="max-width: 250px;">
+                    ${infoHTML}
+                </div>
+            `;
+            
+            document.body.appendChild(faceZoomPreview);
+            updateFaceZoomPosition(event);
+            
+            console.log('Enhanced face zoom widget with debugging created');
+        }
+        
+        function updateFaceZoomPosition(event) {
+            if (!faceZoomPreview) return;
+            
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+            const previewWidth = faceZoomPreview.offsetWidth || 200;
+            const previewHeight = faceZoomPreview.offsetHeight || 200;
+            
+            // Position preview to the right and slightly above the cursor
+            let left = mouseX + 15;
+            let top = mouseY - previewHeight / 2;
+            
+            // Adjust if preview would go off screen
+            if (left + previewWidth > window.innerWidth - 10) {
+                left = mouseX - previewWidth - 15;
+            }
+            if (top < 10) {
+                top = 10;
+            }
+            if (top + previewHeight > window.innerHeight - 10) {
+                top = window.innerHeight - previewHeight - 10;
+            }
+            
+            faceZoomPreview.style.left = left + 'px';
+            faceZoomPreview.style.top = top + 'px';
+        }
+        
+        function hideFaceZoom() {
+            if (faceZoomPreview) {
+                faceZoomPreview.remove();
+                faceZoomPreview = null;
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Load existing images from server
+        async function loadExistingImages() {
+            try {
+                console.log('Loading existing images from S3...');
+                const response = await fetch('/api/images');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Loaded images from S3:', data);
+                
+                uploadedImages = data.images || [];
+                displayImageGallery();
+                
+            } catch (error) {
+                console.error('Failed to load existing images:', error);
+                const imageGallery = document.getElementById('imageGallery');
+                imageGallery.innerHTML = `
+                    <div class="gallery-section">
+                        <div class="gallery-header">
+                            <h3>❌ Failed to Load Images</h3>
+                        </div>
+                        <div class="gallery-content">
+                            <p>Error: ${error.message}</p>
+                            <p>This might be normal if no images have been uploaded yet.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Debounce function to limit resize event frequency
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Handle window resize to redraw bounding boxes
+        window.addEventListener('resize', debounce(() => {
+            const visibleImages = document.querySelectorAll('.gallery-content.expanded img');
+            visibleImages.forEach(img => {
+                const container = img.parentElement;
+                const existingBoxes = container.querySelectorAll('.bounding-box');
+                
+                if (existingBoxes.length > 0 || img.hasAttribute('data-bounding-boxes')) {
+                    // Get stored bounding box data
+                    let boundingBoxes = [];
+                    let faceBoxes = [];
+                    
+                    // First try to get from data attributes (most reliable)
+                    if (img.hasAttribute('data-bounding-boxes')) {
+                        try {
+                            boundingBoxes = JSON.parse(img.getAttribute('data-bounding-boxes') || '[]');
+                            faceBoxes = JSON.parse(img.getAttribute('data-face-boxes') || '[]');
+                            console.log('Resize: Using data attributes', { boundingBoxes: boundingBoxes.length, faceBoxes: faceBoxes.length });
+                        } catch (e) {
+                            console.warn('Failed to parse data attributes:', e);
+                        }
+                    }
+                    
+                    // If no data attributes, try to extract from onload attribute
+                    if (boundingBoxes.length === 0 && faceBoxes.length === 0) {
+                        const onloadAttr = img.getAttribute('onload');
+                        if (onloadAttr) {
+                            // Improved regex to handle the HTML-encoded quotes
+                            const match = onloadAttr.match(/drawBoundingBoxes\(this,\s*([^,]+),\s*([^)]+)\)/);
+                            if (match) {
+                                try {
+                                    // Decode HTML entities and parse JSON
+                                    const boundingBoxStr = match[1].replace(/&quot;/g, '"');
+                                    const faceBoxStr = match[2].replace(/&quot;/g, '"');
+                                    
+                                    boundingBoxes = JSON.parse(boundingBoxStr);
+                                    faceBoxes = JSON.parse(faceBoxStr);
+                                    
+                                    console.log('Resize: Parsed from onload', { boundingBoxes: boundingBoxes.length, faceBoxes: faceBoxes.length });
+                                    
+                                    // Store in data attributes for future use
+                                    img.setAttribute('data-bounding-boxes', JSON.stringify(boundingBoxes));
+                                    img.setAttribute('data-face-boxes', JSON.stringify(faceBoxes));
+                                } catch (e) {
+                                    console.warn('Could not parse bounding boxes from onload attribute:', e);
+                                    console.log('Onload content:', match[1], match[2]);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Only redraw if we have valid data
+                    if (boundingBoxes.length > 0 || faceBoxes.length > 0) {
+                        console.log('Resize: Redrawing with data', { boundingBoxes: boundingBoxes.length, faceBoxes: faceBoxes.length });
+                        drawBoundingBoxes(img, boundingBoxes, faceBoxes);
+                    } else {
+                        console.warn('Resize: No bounding box data available for redraw');
+                    }
+                }
+            });
+        }, 250));
+        
+        // Smart refresh system for unprocessed images
+        const unprocessedImages = new Set();
+        let smartRefreshInterval = null;
+        let refreshCounter = 0;
+        const MAX_REFRESH_ATTEMPTS = 15; // Maximum number of refresh attempts (2.5 minutes at 10s intervals)
+        
+        function startSmartRefresh() {
+            if (smartRefreshInterval) {
+                clearInterval(smartRefreshInterval);
+            }
+            
+            refreshCounter = 0;
+            console.log('Starting smart refresh for unprocessed images');
+            
+            // Check every 10 seconds for unprocessed images
+            smartRefreshInterval = setInterval(() => {
+                refreshCounter++;
+                
+                // Stop after maximum attempts regardless of processing status
+                if (refreshCounter > MAX_REFRESH_ATTEMPTS) {
+                    console.log(`Refresh #${refreshCounter}: Maximum refresh attempts (${MAX_REFRESH_ATTEMPTS}) reached, stopping smart refresh`);
+                    clearInterval(smartRefreshInterval);
+                    smartRefreshInterval = null;
+                    unprocessedImages.clear(); // Clear the set to prevent future refresh attempts
+                    return;
+                }
+                
+                if (unprocessedImages.size === 0) {
+                    console.log(`Refresh #${refreshCounter}: No unprocessed images to check, stopping smart refresh`);
+                    clearInterval(smartRefreshInterval);
+                    smartRefreshInterval = null;
+                    return;
+                }
+                
+                console.log(`Refresh #${refreshCounter}: Checking ${unprocessedImages.size} unprocessed images`);
+                
+                loadExistingImages().then(() => {
+                    // After refresh, check if any images are still unprocessed
+                    const stillUnprocessed = new Set();
+                    
+                    unprocessedImages.forEach(imageId => {
+                        const image = uploadedImages.find(img => img.imageId === imageId);
+                        console.log(`Checking image ${imageId}:`, image ? 
+                            `status=${image.processing_status}, rekognition=${!!image.rekognition}` : 
+                            'not found');
+                        
+                        // Consider an image processed if:
+                        // 1. It exists in uploadedImages
+                        // 2. Either:
+                        //    a. It has rekognition data (regardless of whether it has bounding boxes)
+                        //    b. Its processing_status is 'completed'
+                        const isProcessed = image && 
+                                          (image.rekognition || image.processing_status === 'completed');
+                        
+                        if (!isProcessed) {
+                            stillUnprocessed.add(imageId);
+                            console.log(`Image ${imageId} still unprocessed: ${!image ? 'not found' : 'no rekognition data and status not completed'}`);
+                        } else {
+                            console.log(`Image ${imageId} is processed ${image.rekognition ? '(has rekognition data)' : '(status is completed)'}`);
+                        }
+                    });
+                    
+                    unprocessedImages.clear();
+                    stillUnprocessed.forEach(id => unprocessedImages.add(id));
+                    
+                    console.log(`Refresh #${refreshCounter}: ${unprocessedImages.size} images still processing`);
+                    
+                    if (unprocessedImages.size === 0) {
+                        console.log(`Refresh #${refreshCounter}: All images processed, stopping smart refresh`);
+                        clearInterval(smartRefreshInterval);
+                        smartRefreshInterval = null;
+                    }
+                });
+            }, 10000); // Check every 10 seconds
+        }
+        
+        // Track unprocessed images when displaying the gallery
+        const originalDisplayImageGallery = displayImageGallery;
+        displayImageGallery = function() {
+            originalDisplayImageGallery.apply(this, arguments);
+            
+            // Find unprocessed images
+            uploadedImages.forEach(image => {
+                if (image.imageId && (!image.processing_status || image.processing_status !== 'completed')) {
+                    unprocessedImages.add(image.imageId);
+                }
+            });
+            
+            // Start smart refresh if there are unprocessed images
+            if (unprocessedImages.size > 0 && !smartRefreshInterval) {
+                startSmartRefresh();
+            }
+        };
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing...');
+            
+            // Load system info and images
+            loadSystemInfo();
+            loadExistingImages();
+            
+            // Run health checks in background without blocking
+            setTimeout(() => {
+                checkOverallHealth().catch(e => console.error('Overall health check failed:', e));
+                checkApiHealth().catch(e => console.error('API health check failed:', e));
+                checkHealth().catch(e => console.error('Infrastructure health check failed:', e));
+            }, 1000); // Small delay to let page load first
+        });
+        
+        // Auto-refresh every 3000 seconds
+        setInterval(() => {
+            checkOverallHealth(); // Overall health for system info section
+            checkApiHealth(); // API health check for system info
+            checkHealth(); // Infrastructure status check
+        }, 3000);
+    </script>
+</body>
+</html>
